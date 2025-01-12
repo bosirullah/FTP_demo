@@ -27,9 +27,24 @@ async function loadCSV() {
             throw new Error("The specified file does not exist.");
         }
 
+        // Generate a unique table name based on timestamp
+        const tableName = `table_${Date.now()}`;
+
         // Connect to the database
         connection = await oracledb.getConnection(dbConfig);
         console.log("Connected to the database");
+
+        // Create a new table dynamically
+        const createTableSQL = `
+            CREATE TABLE ${tableName} (
+                column1 VARCHAR2(100),
+                column2 VARCHAR2(100),
+                column3 DATE
+            )
+        `;
+
+        await connection.execute(createTableSQL);
+        console.log(`Created table: ${tableName}`);
 
         // Read the CSV file line by line
         const fileStream = fs.createReadStream(csvFilePath);
@@ -51,7 +66,7 @@ async function loadCSV() {
         let isHeader = true;
 
         // Prepare SQL statement
-        const insertSQL = `INSERT INTO target_table (column1, column2, column3) VALUES (:1, :2, TO_DATE(:3, 'YYYY-MM-DD'))`;
+        const insertSQL = `INSERT INTO ${tableName} (column1, column2, column3) VALUES (:1, :2, TO_DATE(:3, 'YYYY-MM-DD'))`;
 
         for await (const line of rl) {
             if (isHeader) {
@@ -66,7 +81,7 @@ async function loadCSV() {
 
         // Commit transaction
         await connection.commit();
-        console.log("Data loaded successfully!");
+        console.log(`Data loaded successfully into ${tableName}`);
     } catch (err) {
         console.error("Error loading data: ", err);
     } finally {
